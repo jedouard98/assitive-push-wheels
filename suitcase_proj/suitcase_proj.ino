@@ -1,9 +1,9 @@
-//byte speedBytesFromPhone[4] = {51, 51, -93, 64}; 
-signed char speedBytesFromPhone[4] = {0, 0, -129, 67}; 
+// Communication between phone and bluetooth
+signed char speedBytesFromPhone[4] = {0, 0, 0, 0}; 
 
+bool movementStopped = false;
 
-byte testBytes[4] = {0, 0, 0, 0}; 
-
+//
 
 //Motor 1 Control
 int pwmMotor1Control = 9;
@@ -18,7 +18,7 @@ int motor2BPin = 4;
 //Variable for storing received data
 void setup() 
 {
-  Serial.begin(9600);  //Sets the data rate in bits per second (baud) for serial data transmission
+  Ser ial.begin(9600);  //Sets the data rate in bits per second (baud) for serial data transmission
 
 //  // sets motor pins for motor 1
   pinMode(pwmMotor1Control, OUTPUT);  
@@ -29,6 +29,11 @@ void setup()
   pinMode(pwmMotor2Control, OUTPUT);  
   pinMode(motor2APin, OUTPUT);    
   pinMode(motor2BPin, OUTPUT);  
+
+  Serial.println("starting...");
+  moveForward(180);
+
+  delay(1000);
 }
 
 void loop()
@@ -55,30 +60,43 @@ void loop()
 }
 
 void demoTest() {
-  Serial.println("starting...");
-  moveForward(255);
-
-//  delay(3000);
-
   readBluetoothData();
 
-  int i = 0;
-  while(i < 4)  // Send data only when you receive data:
-  {
-    Serial.println(speedBytesFromPhone[i++]);
-    delay(500);
-  }
-
-  float a = convertPhoneBytesToSpeed();
-  Serial.print("This is the float converted: ");
-  Serial.println(a);
-
-  if (convertPhoneBytesToSpeed() < 0) {
-    delay(3000);
-    stopMoving();
-    while (true) {
-      Serial.println("YO!");
-    }
+  float speedMPH = convertPhoneBytesToSpeed();
+  int signal = (int) convertPhoneBytesToSpeed();
+  
+  Serial.print("The signal is....");
+  Serial.print(signal);
+  Serial.println("!!!!");
+   
+  switch (signal) {
+    case -1:
+      Serial.println("STOP MOVING!!!");
+      stopMoving();
+      break;
+    case -2:
+      Serial.println("YOU CAN START MOVING!!!");
+      // for the demo
+      moveForward(255);
+      movementStopped = false;
+      break;
+    case -3:
+      // TODO: implement this
+      Serial.println("STOP MOVING???!!!");
+      stopMoving();
+      break;
+     case -4:
+      //TODO: implement this
+      Serial.println("YOU CAN START MOVING???!!!");
+      movementStopped = false;
+      break;
+    default:
+      Serial.println("Maybe I'll move?");
+      if (!movementStopped) {
+        Serial.println("Yep!!");
+//        float speed = convertSpeedToPWM(speedMPH);
+        moveForward(255);
+      }
   }
 }
 
@@ -91,6 +109,7 @@ void stopMoving() {
   digitalWrite(motor2BPin, LOW);
   analogWrite(pwmMotor2Control, 0);
 
+  movementStopped = true;
 }
 
 void moveForward(int speed) {
@@ -105,13 +124,14 @@ void moveForward(int speed) {
 
 // Read information from phone if there is new information
 void readBluetoothData() {
-  int i = 0;
+  int i = 3;
+  
   while(Serial.available() > 0)  // Send data only when you receive data:
   {
+    Serial.println("READING FROM PHONE");
     signed char singleByteFromPhone = Serial.read();
     Serial.println(singleByteFromPhone);
-    speedBytesFromPhone[i++] = singleByteFromPhone;
-    delay(1000);
+    speedBytesFromPhone[i--] = singleByteFromPhone;
   }
 }
 
@@ -129,7 +149,8 @@ void readEncoderBData() {
 
 // Read information from stepper motors
 // TODO: implement this!
-void convertSpeedToPWM() {
+float convertSpeedToPWM(float speed) {
+  return 255.0;
 }
 //
 
