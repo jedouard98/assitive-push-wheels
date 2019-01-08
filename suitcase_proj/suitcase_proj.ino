@@ -1,173 +1,40 @@
-// Communication between phone and bluetooth
-signed char speedBytesFromPhone[4] = {0, 0, 0, 0}; 
+#include <Adafruit_NeoPixel.h> // include neopixel library
 
-bool movementStopped = false;
+#define PIN 12 // Which pin on the Arduino is connected to the NeoPixels?
+#define NUMPIXELS 3 // How many NeoPixels are attached to the Arduino?
 
-//
+// When we setup the NeoPixel library, we tell it how many pixels, and which pin to use to send signals.
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
-//Motor 1 Control
-int pwmMotor1Control = 9;
-int motor1APin = 8;
-int motor1BPin = 7;
-
-//Motor 2 Control 
-int pwmMotor2Control = 6;
-int motor2APin = 5;
-int motor2BPin = 4;
-
-//Variable for storing received data
-void setup() 
-{
-  Ser ial.begin(9600);  //Sets the data rate in bits per second (baud) for serial data transmission
-
-//  // sets motor pins for motor 1
-  pinMode(pwmMotor1Control, OUTPUT);  
-  pinMode(motor1APin, OUTPUT);  
-  pinMode(motor1BPin, OUTPUT);  
-
-  // sets motor pins for motor 2
-  pinMode(pwmMotor2Control, OUTPUT);  
-  pinMode(motor2APin, OUTPUT);    
-  pinMode(motor2BPin, OUTPUT);  
-
-  Serial.println("starting...");
-  moveForward(180);
-
-  delay(1000);
+int val;
+// runs when you turn on the Flora
+void setup() {
+  Serial.begin(9600);       // start serial communication at 9600bps
+  pixels.begin(); // This initializes the NeoPixel library.
+  pixels.setPixelColor(0, pixels.Color(100, 100, 100));
+  pixels.setPixelColor(1, pixels.Color(100, 100, 100));
+  pixels.setPixelColor(2, pixels.Color(100, 100, 100));
 }
 
-void loop()
-{
-  demoTest();
+void loop() {
+while (Serial.available() > 0) {
+       // if data is available to read
+    int red = Serial.parseInt();           // read it and store it in 'val'
+    int green = Serial.parseInt();
+    int blue = Serial.parseInt();
 
-//  convertSpeedToBytesAndPrint(255);
-  
-  // read new information from iphone
-//  readBluetoothData();
-
-  //convert information from iphone to speed
-//  float speed = convertPhoneBytesToSpeed();
-
-  // drive straight
-//  moveForward(speed);
-  
-  // read in information from stepper motors
-//    readEncoderrData();
-
-  //calculate appropriate speed
-  //  calculateSpeed();
-
-}
-
-void demoTest() {
-  readBluetoothData();
-
-  float speedMPH = convertPhoneBytesToSpeed();
-  int signal = (int) convertPhoneBytesToSpeed();
-  
-  Serial.print("The signal is....");
-  Serial.print(signal);
-  Serial.println("!!!!");
-   
-  switch (signal) {
-    case -1:
-      Serial.println("STOP MOVING!!!");
-      stopMoving();
-      break;
-    case -2:
-      Serial.println("YOU CAN START MOVING!!!");
-      // for the demo
-      moveForward(255);
-      movementStopped = false;
-      break;
-    case -3:
-      // TODO: implement this
-      Serial.println("STOP MOVING???!!!");
-      stopMoving();
-      break;
-     case -4:
-      //TODO: implement this
-      Serial.println("YOU CAN START MOVING???!!!");
-      movementStopped = false;
-      break;
-    default:
-      Serial.println("Maybe I'll move?");
-      if (!movementStopped) {
-        Serial.println("Yep!!");
-//        float speed = convertSpeedToPWM(speedMPH);
-        moveForward(255);
-      }
+    if (Serial.read()== '\n') {
+      red = constrain(red, 0, 255);
+      green = constrain(green, 0, 255);
+      blue = constrain(blue, 0, 255);
+     
+    for (int i = 0; i < NUMPIXELS; i++) {
+      pixels.setPixelColor(i, pixels.Color(red, green, blue));
+      pixels.show();
+    }
+   }
   }
 }
 
-void stopMoving() {
-  digitalWrite(motor1APin, LOW);
-  digitalWrite(motor1BPin, LOW);
-  analogWrite(pwmMotor1Control, 0);
 
-  digitalWrite(motor2APin, LOW);
-  digitalWrite(motor2BPin, LOW);
-  analogWrite(pwmMotor2Control, 0);
 
-  movementStopped = true;
-}
-
-void moveForward(int speed) {
-  digitalWrite(motor1APin, LOW);
-  digitalWrite(motor1BPin, HIGH);
-  analogWrite(pwmMotor1Control, speed);
-
-  digitalWrite(motor2APin, HIGH);
-  digitalWrite(motor2BPin, LOW);
-  analogWrite(pwmMotor2Control, speed);
-}
-
-// Read information from phone if there is new information
-void readBluetoothData() {
-  int i = 3;
-  
-  while(Serial.available() > 0)  // Send data only when you receive data:
-  {
-    Serial.println("READING FROM PHONE");
-    signed char singleByteFromPhone = Serial.read();
-    Serial.println(singleByteFromPhone);
-    speedBytesFromPhone[i--] = singleByteFromPhone;
-  }
-}
-
-// Read information from stepper motors
-
-// TODO: implement this!
-void readEncoderData() {
-}
-
-void readEncoderAData() {
-}
-
-void readEncoderBData() {
-}
-
-// Read information from stepper motors
-// TODO: implement this!
-float convertSpeedToPWM(float speed) {
-  return 255.0;
-}
-//
-
-//void convertSpeedToBytesAndPrint(float speed) {
-//  signed char *b = (signed char *)&speed;
-//  for (int i = 0; i < 4; i++) {
-//    int a = (signed char) b[i];
-//    Serial.println(a);
-//  } 
-//  Serial.println();
-//}
-
-// Convert bytes to int
-float convertPhoneBytesToSpeed() {
-  //convert phone bytes to a float num
-  float speed;
-  memcpy(&speed, speedBytesFromPhone, sizeof(float));  
-//  Serial.println(speed);
-  return speed;
-}
